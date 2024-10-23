@@ -1,0 +1,34 @@
+R_DEF: Internal format may change without notice
+local
+dimen icon_size
+drawable ic_broken_heart
+drawable ic_heart
+drawable ic_launcher_background
+drawable ic_launcher_foreground
+id heartRateText
+id ipAddressInput
+id passwordInput
+id portInput
+id progressBar
+id startMeasureButton
+id statusText
+id statusTextView
+id toggleModeButton
+id updateMqttButton
+id usernameInput
+layout activity_main
+layout activity_mqtt_connection
+mipmap ic_launcher
+mipmap ic_launcher_round
+string app_name
+string heart_rate_bpm
+string heart_rate_not_available
+string last_measured
+string measure_status
+string offline
+string online
+string start_measuring_heart_rate
+string status_unknown
+string toggle_online_offline_mode
+string update_mqtt_settings
+style AppTheme
