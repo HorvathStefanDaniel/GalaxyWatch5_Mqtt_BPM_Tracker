@@ -5,8 +5,10 @@ drawable ic_broken_heart
 drawable ic_heart
 drawable ic_launcher_background
 drawable ic_launcher_foreground
+id BPMInput
 id heartRateText
 id ipAddressInput
+id overwriteBpmSwitch
 id passwordInput
 id portInput
 id progressBar

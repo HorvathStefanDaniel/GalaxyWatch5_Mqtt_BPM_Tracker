@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ScrollView;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
@@ -23,10 +24,16 @@ public final class ActivityMainBinding implements ViewBinding {
   private final ScrollView rootView;
 
   @NonNull
+  public final EditText BPMInput;
+
+  @NonNull
   public final TextView heartRateText;
 
   @NonNull
   public final EditText ipAddressInput;
+
+  @NonNull
+  public final Switch overwriteBpmSwitch;
 
   @NonNull
   public final EditText passwordInput;
@@ -49,14 +56,17 @@ public final class ActivityMainBinding implements ViewBinding {
   @NonNull
   public final EditText usernameInput;
 
-  private ActivityMainBinding(@NonNull ScrollView rootView, @NonNull TextView heartRateText,
-      @NonNull EditText ipAddressInput, @NonNull EditText passwordInput,
+  private ActivityMainBinding(@NonNull ScrollView rootView, @NonNull EditText BPMInput,
+      @NonNull TextView heartRateText, @NonNull EditText ipAddressInput,
+      @NonNull Switch overwriteBpmSwitch, @NonNull EditText passwordInput,
       @NonNull EditText portInput, @NonNull Button startMeasureButton, @NonNull TextView statusText,
       @NonNull ToggleButton toggleModeButton, @NonNull Button updateMqttButton,
       @NonNull EditText usernameInput) {
     this.rootView = rootView;
+    this.BPMInput = BPMInput;
     this.heartRateText = heartRateText;
     this.ipAddressInput = ipAddressInput;
+    this.overwriteBpmSwitch = overwriteBpmSwitch;
     this.passwordInput = passwordInput;
     this.portInput = portInput;
     this.startMeasureButton = startMeasureButton;
@@ -93,6 +103,12 @@ public final class ActivityMainBinding implements ViewBinding {
     // This is done to optimize the compiled bytecode for size and performance.
     int id;
     missingId: {
+      id = R.id.BPMInput;
+      EditText BPMInput = ViewBindings.findChildViewById(rootView, id);
+      if (BPMInput == null) {
+        break missingId;
+      }
+
       id = R.id.heartRateText;
       TextView heartRateText = ViewBindings.findChildViewById(rootView, id);
       if (heartRateText == null) {
@@ -102,6 +118,12 @@ public final class ActivityMainBinding implements ViewBinding {
       id = R.id.ipAddressInput;
       EditText ipAddressInput = ViewBindings.findChildViewById(rootView, id);
       if (ipAddressInput == null) {
+        break missingId;
+      }
+
+      id = R.id.overwriteBpmSwitch;
+      Switch overwriteBpmSwitch = ViewBindings.findChildViewById(rootView, id);
+      if (overwriteBpmSwitch == null) {
         break missingId;
       }
 
@@ -147,9 +169,9 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      return new ActivityMainBinding((ScrollView) rootView, heartRateText, ipAddressInput,
-          passwordInput, portInput, startMeasureButton, statusText, toggleModeButton,
-          updateMqttButton, usernameInput);
+      return new ActivityMainBinding((ScrollView) rootView, BPMInput, heartRateText, ipAddressInput,
+          overwriteBpmSwitch, passwordInput, portInput, startMeasureButton, statusText,
+          toggleModeButton, updateMqttButton, usernameInput);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));

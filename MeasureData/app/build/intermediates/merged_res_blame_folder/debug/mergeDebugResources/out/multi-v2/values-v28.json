@@ -4,7 +4,7 @@
             "outputFile": "com.example.measuredata.app-mergeDebugResources-46:/values-v28/values-v28.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\horva\\.gradle\\caches\\8.10.2\\transforms\\53cb6108d78ff7f2823d03aef9519da9\\transformed\\appcompat-1.6.1\\res\\values-v28\\values-v28.xml",
+                    "source": "C:\\Users\\horva\\.gradle\\caches\\8.10.2\\transforms\\d3a920f9480503d03cc456482841b599\\transformed\\appcompat-1.7.0\\res\\values-v28\\values-v28.xml",
                     "from": {
                         "startLines": "2,3,4,8",
                         "startColumns": "4,4,4,4",

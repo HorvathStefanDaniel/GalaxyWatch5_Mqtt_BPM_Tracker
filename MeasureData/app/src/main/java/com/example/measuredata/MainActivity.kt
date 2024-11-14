@@ -126,6 +126,7 @@ class MainActivity : AppCompatActivity() {
     // Function to check and request the BODY_SENSORS permission
     private fun checkAndRequestPermission() {
         val permission = android.Manifest.permission.BODY_SENSORS
+
         when (ContextCompat.checkSelfPermission(this, permission)) {
             PermissionChecker.PERMISSION_GRANTED -> {
                 Log.d("MainActivity", "BODY_SENSORS permission already granted")

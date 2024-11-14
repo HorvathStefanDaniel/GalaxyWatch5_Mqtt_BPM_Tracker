@@ -78,7 +78,7 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             var retryCount = 0
-            val maxRetries = 3
+            val maxRetries = 1
             while (retryCount < maxRetries) {
                 try {
                     Log.d(TAG, "Attempting to connect to MQTT broker at ${mqttDetails.serverUri}:${mqttDetails.port}")

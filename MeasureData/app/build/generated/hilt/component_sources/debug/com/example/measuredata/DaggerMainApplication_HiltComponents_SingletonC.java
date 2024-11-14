@@ -584,7 +584,7 @@ public final class DaggerMainApplication_HiltComponents_SingletonC {
     }
 
     @Override
-    public void injectMainApplication(MainApplication mainApplication) {
+    public void injectMainApplication(MainApplication arg0) {
     }
 
     @Override

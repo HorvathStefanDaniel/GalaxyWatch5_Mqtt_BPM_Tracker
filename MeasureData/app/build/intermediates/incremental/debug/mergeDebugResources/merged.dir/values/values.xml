@@ -13467,7 +13467,7 @@
     
     <attr format="boolean" name="tabUnboundedRipple"/>
   </declare-styleable>
-    <declare-styleable name="TextAppearance"><attr name="android:textSize"/><attr name="android:textColor"/><attr name="android:textColorHint"/><attr name="android:textColorLink"/><attr name="android:textStyle"/><attr name="android:textFontWeight"/><attr name="android:typeface"/><attr name="android:fontFamily"/><attr name="fontFamily"/><attr name="textAllCaps"/><attr name="textLocale"/><attr name="android:shadowColor"/><attr name="android:shadowDy"/><attr name="android:shadowDx"/><attr name="android:shadowRadius"/><attr name="fontVariationSettings"/><attr name="android:letterSpacing"/><attr name="android:fontVariationSettings"/><attr name="android:fontFeatureSettings"/></declare-styleable>
+    <declare-styleable name="TextAppearance"><attr name="android:textColor"/><attr name="android:textSize"/><attr name="android:textStyle"/><attr name="android:textFontWeight"/><attr name="android:typeface"/><attr name="android:fontFamily"/><attr name="android:letterSpacing"/><attr name="android:fontVariationSettings"/><attr name="android:fontFeatureSettings"/><attr name="android:textColorHint"/><attr name="android:textColorLink"/><attr name="fontFamily"/><attr name="textAllCaps"/><attr name="textLocale"/><attr name="android:shadowColor"/><attr name="android:shadowDy"/><attr name="android:shadowDx"/><attr name="android:shadowRadius"/><attr name="fontVariationSettings"/></declare-styleable>
     <declare-styleable name="TextEffects">
         <attr name="android:text"/>
         <attr name="android:textSize"/>

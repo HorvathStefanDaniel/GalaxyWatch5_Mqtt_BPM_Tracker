@@ -119,13 +119,34 @@
             android:layout_height="wrap_content"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/overwriteBpmSwitch"
             android:hint="Enter Password"
             app:layout_constraintTop_toBottomOf="@id/usernameInput"
             />
 
+        <Switch
+            android:id="@+id/overwriteBpmSwitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BPM Overwrite"
 
 
+            app:layout_constraintBottom_toTopOf="@+id/BPMInput"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/passwordInput"
+            tools:ignore="UseSwitchCompatOrMaterialXml" />
+        <EditText
+            android:id="@+id/BPMInput"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            android:hint="Enter overwrite BPM"
+            app:layout_constraintTop_toBottomOf="@id/overwriteBpmSwitch"
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

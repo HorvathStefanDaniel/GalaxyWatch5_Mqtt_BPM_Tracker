@@ -3274,6 +3274,7 @@ fraction ws_action_drawer_item_right_padding
 id ALT
 id BOTTOM_END
 id BOTTOM_START
+id BPMInput
 id CTRL
 id FUNCTION
 id META
@@ -3623,6 +3624,7 @@ id outer
 id outline
 id outward
 id overshoot
+id overwriteBpmSwitch
 id packed
 id parallax
 id parent

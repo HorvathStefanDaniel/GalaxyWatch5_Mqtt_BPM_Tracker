@@ -1,12 +1,12 @@
-#Fri Oct 18 23:11:57 CEST 2024
-base.0=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
-base.1=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
-base.2=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\10\\classes.dex
-base.3=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\13\\classes.dex
-base.4=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\14\\classes.dex
-base.5=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\15\\classes.dex
-base.6=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\7\\classes.dex
-base.7=C\:\\Users\\horva\\Downloads\\health-samples-main\\health-services\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
+#Sat Oct 26 15:17:45 CEST 2024
+base.0=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes.dex
+base.1=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\0\\classes.dex
+base.2=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\10\\classes.dex
+base.3=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\13\\classes.dex
+base.4=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\14\\classes.dex
+base.5=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\15\\classes.dex
+base.6=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeProjectDexDebug\\7\\classes.dex
+base.7=C\:\\Users\\horva\\GalaxyWatch4_Mqtt_BPM_Tracker\\MeasureData\\app\\build\\intermediates\\dex\\debug\\mergeExtDexDebug\\classes2.dex
 path.0=classes.dex
 path.1=0/classes.dex
 path.2=10/classes.dex
