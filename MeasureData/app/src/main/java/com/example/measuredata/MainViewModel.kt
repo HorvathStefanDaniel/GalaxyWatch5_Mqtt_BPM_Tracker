@@ -20,6 +20,7 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val healthServicesManager: HealthServicesManager,
     private val sharedPreferences: SharedPreferences
+
 ) : ViewModel() {
 
     companion object {
@@ -36,7 +37,15 @@ class MainViewModel @Inject constructor(
     val heartRateBpm: StateFlow<Double> = _heartRateBpm
 
     private lateinit var mqttClient: MqttClient
-    private var onlineMode = true
+    private var onlineMode = false
+
+    // Overwrite BPM functionality
+    val overwriteBpmEnabled = MutableStateFlow(false)
+    val overwriteBpmValue = MutableStateFlow(0.0)
+
+    private val _ibiValue = MutableStateFlow<Long?>(null)
+    val ibiValue: StateFlow<Long?> = _ibiValue
+
 
     init {
         // Setup MQTT with stored preferences initially
@@ -53,14 +62,8 @@ class MainViewModel @Inject constructor(
     }
 
     private fun getStoredMqttDetails(): MqttDetails {
-        var serverUri = sharedPreferences.getString("serverUri", "127.0.0.1") ?: "127.0.0.1"
+        val serverUri = sharedPreferences.getString("serverUri", "tcp://127.0.0.1") ?: "tcp://127.0.0.1"
         val port = sharedPreferences.getInt("port", 1883)
-
-        // Ensure that the server URI has the correct format (add "tcp://" if it's missing)
-        if (!serverUri.contains("://")) {
-            serverUri = "tcp://$serverUri"
-        }
-
         val username = sharedPreferences.getString("username", null)
         val password = sharedPreferences.getString("password", null)
 
@@ -101,6 +104,7 @@ class MainViewModel @Inject constructor(
                     Log.d(TAG, "Connected to broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
                     withContext(Dispatchers.Main) {
                         _uiState.value = UiState.ConnectedToMQTT
+                        onlineMode = true
                     }
                     break // Exit loop after success
 
@@ -119,6 +123,7 @@ class MainViewModel @Inject constructor(
                         Log.e(TAG, "Max retries reached. Unable to connect to MQTT broker.")
                         withContext(Dispatchers.Main) {
                             _uiState.value = UiState.FailedToConnectMQTT
+                            onlineMode = false
                         }
                     }
                 }
@@ -132,7 +137,10 @@ class MainViewModel @Inject constructor(
             try {
                 Log.d(TAG, "Updating MQTT details - Server URI: $serverUri, Port: $port, Username: $username, Password: ${if (password != null) "****" else "null"}")
 
-                mqttClient.disconnect()
+                if (::mqttClient.isInitialized && mqttClient.isConnected) {
+                    mqttClient.disconnect()
+                }
+
                 mqttClient = MqttClient("tcp://$serverUri:$port", MqttClient.generateClientId(), MemoryPersistence())
                 val connOpts = MqttConnectOptions().apply {
                     isCleanSession = true
@@ -158,8 +166,14 @@ class MainViewModel @Inject constructor(
                     .putString("password", password)
                     .apply()
 
+                // Update UI state
+                _uiState.value = UiState.ConnectedToMQTT
+                onlineMode = true
+
             } catch (e: MqttException) {
                 Log.e(TAG, "Failed to update MQTT details: ${e.message}")
+                _uiState.value = UiState.FailedToConnectMQTT
+                onlineMode = false
             }
         }
     }
@@ -187,11 +201,15 @@ class MainViewModel @Inject constructor(
                     mqttClient.disconnect()
                     Log.d(TAG, "MQTT disconnected")
                     onlineMode = false
+                    _uiState.value = UiState.FailedToConnectMQTT
                 } catch (e: MqttException) {
                     Log.e(TAG, "Failed to disconnect MQTT: ${e.message}")
                     onlineMode = false
                 }
             }
+        } else {
+            onlineMode = false
+            _uiState.value = UiState.FailedToConnectMQTT
         }
     }
 
@@ -199,16 +217,23 @@ class MainViewModel @Inject constructor(
     fun measureHeartRate() {
         viewModelScope.launch {
             Log.d(TAG, "Starting to measure heart rate.")
-            healthServicesManager.heartRateMeasureFlow().collect {
-                when (it) {
+            healthServicesManager.heartRateMeasureFlow().collect { measureMessage ->
+                when (measureMessage) {
                     is MeasureMessage.MeasureAvailability -> {
-                        Log.d(TAG, "Availability changed: ${it.availability}")
-                        _heartRateAvailable.value = it.availability
+                        Log.d(TAG, "Availability changed: ${measureMessage.availability}")
+                        _heartRateAvailable.value = measureMessage.availability
                     }
                     is MeasureMessage.MeasureData -> {
-                        if (it.data.isNotEmpty()) {
-                            val bpm = it.data.last().value
+                        if (measureMessage.data.isNotEmpty()) {
+                            var bpm = measureMessage.data.last().value
                             Log.d(TAG, "Data update: $bpm")
+
+                            // Check if overwrite is enabled
+                            if (overwriteBpmEnabled.value) {
+                                bpm = overwriteBpmValue.value
+                                Log.d(TAG, "Overwrite enabled. Using BPM value: $bpm")
+                            }
+
                             _heartRateBpm.value = bpm
                             if (onlineMode) {
                                 publishHeartRateData(bpm)  // Publishing heart rate data
@@ -217,9 +242,26 @@ class MainViewModel @Inject constructor(
                             Log.d(TAG, "Received empty heart rate data.")
                         }
                     }
+                    is MeasureMessage.MeasureIBI -> {
+                        // Handle IBI data here
+                        val ibi = measureMessage.ibi
+                        Log.d(TAG, "Received IBI: $ibi ms")
+                        // Process IBI data as needed
+                        _ibiValue.value = ibi
+                    }
                 }
             }
         }
+    }
+
+
+    // Functions to update overwrite BPM values
+    fun setOverwriteBpmEnabled(enabled: Boolean) {
+        overwriteBpmEnabled.value = enabled
+    }
+
+    fun setOverwriteBpmValue(value: Double) {
+        overwriteBpmValue.value = value
     }
 }
 
@@ -235,8 +277,7 @@ sealed class UiState {
     object Startup : UiState()
     object HeartRateAvailable : UiState()
     object HeartRateNotAvailable : UiState()
-    object ConnectingToMQTT : UiState()  // New state for MQTT connection progress
-    object ConnectedToMQTT : UiState()   // New state for when MQTT is connected
-    object FailedToConnectMQTT : UiState() // New state for connection failure
+    object ConnectingToMQTT : UiState()
+    object ConnectedToMQTT : UiState()
+    object FailedToConnectMQTT : UiState()
 }
-

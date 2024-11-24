@@ -2,8 +2,11 @@ package com.example.measuredata
 
 import android.content.Intent
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.WindowManager
+import android.widget.*
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
@@ -13,7 +16,6 @@ import androidx.core.content.PermissionChecker
 import androidx.lifecycle.lifecycleScope
 import com.example.measuredata.databinding.ActivityMainBinding
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -34,7 +36,7 @@ class MainActivity : AppCompatActivity() {
         // Keep the screen on while the app is running
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // **Initialize the binding first**
+        // Initialize the binding first
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -53,6 +55,16 @@ class MainActivity : AppCompatActivity() {
 
         // Check and request permission in onStart
         checkAndRequestPermission()
+
+        lifecycleScope.launch {
+            viewModel.ibiValue.collect { ibi ->
+                ibi?.let {
+                    // Update UI to display IBI
+                    binding.ibiTextView.text = "IBI: $ibi ms"
+                }
+            }
+        }
+
 
         // Observe heart rate and UI state
         lifecycleScope.launch {
@@ -76,8 +88,7 @@ class MainActivity : AppCompatActivity() {
                     UiState.ConnectingToMQTT -> {
                         binding.statusText.text = "Connecting to MQTT..."
                         Log.d("MainActivity", "Attempting to connect to MQTT")
-                        // Start MqttConnectionActivity
-                        startActivity(Intent(this@MainActivity, MqttConnectionActivity::class.java))
+                        // Optionally start an activity or show a progress indicator
                     }
                     UiState.FailedToConnectMQTT -> {
                         binding.statusText.text = "Failed to connect to MQTT"
@@ -111,16 +122,43 @@ class MainActivity : AppCompatActivity() {
             val password = binding.passwordInput.text.toString().ifEmpty { null }
 
             viewModel.updateMqttDetails(serverUri, username, password, port)
-
-            // Save the new settings to SharedPreferences
-            val sharedPreferences = getSharedPreferences("mqtt_prefs", MODE_PRIVATE)
-            sharedPreferences.edit()
-                .putString("serverUri", serverUri)
-                .putInt("port", port)
-                .putString("username", username)
-                .putString("password", password)
-                .apply()
         }
+
+        // Set up BPM Overwrite Switch
+        binding.overwriteBpmSwitch.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setOverwriteBpmEnabled(isChecked)
+            Log.d("MainActivity", "Overwrite BPM enabled: $isChecked")
+        }
+
+        //bpm overwrite input disabled if switch is off
+        binding.overwriteBpmSwitch.setOnCheckedChangeListener { _, isChecked ->
+            viewModel.setOverwriteBpmEnabled(isChecked)
+            binding.BPMInput.isEnabled = isChecked
+            Log.d("MainActivity", "Overwrite BPM enabled: $isChecked")
+        }
+
+
+        // Listen for changes in the BPM input field
+        binding.BPMInput.addTextChangedListener(object : TextWatcher {
+            override fun afterTextChanged(s: Editable?) {
+                val bpmValue = s.toString().toDoubleOrNull()
+                if (bpmValue != null) {
+                    viewModel.setOverwriteBpmValue(bpmValue)
+                    Log.d("MainActivity", "Overwrite BPM value set to: $bpmValue")
+                } else {
+                    viewModel.setOverwriteBpmValue(0.0)
+                    Log.d("MainActivity", "Invalid BPM input. Set to 0.0")
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
+                // No action needed
+            }
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                // No action needed
+            }
+        })
     }
 
     // Function to check and request the BODY_SENSORS permission

@@ -10,7 +10,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:padding="24dp"
-        android:paddingTop="0dp">
+        android:paddingTop="0dp"
+        app:layout_constraintEnd_toStartOf="@+id/statusText"
+        app:layout_constraintStart_toStartOf="@+id/statusText">
 
         <!-- Shown at startup. -->
 
@@ -38,10 +40,22 @@
             android:text="@string/heart_rate_bpm"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
             android:visibility="visible"
-            app:layout_constraintBottom_toTopOf="@id/startMeasureButton"
+            app:layout_constraintBottom_toTopOf="@id/ibiTextView"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/statusText"
+            tools:visibility="visible" />
+
+        <TextView
+            android:id="@+id/ibiTextView"
+            android:layout_width="69dp"
+            android:layout_height="31dp"
+            android:text="IBI: -- ms"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+            app:layout_constraintBottom_toTopOf="@+id/toggleModeButton"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/heartRateText"
             tools:visibility="visible" />
 
         <!-- Button to update MQTT details. -->
@@ -55,7 +69,7 @@
             app:layout_constraintBottom_toTopOf="@+id/startMeasureButton"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/heartRateText" />
+            app:layout_constraintTop_toBottomOf="@+id/ibiTextView" />
 
         <Button
             android:id="@+id/startMeasureButton"
@@ -89,40 +103,36 @@
             app:layout_constraintHorizontal_bias="0.497"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/updateMqttButton"
-            />
+            app:layout_constraintTop_toBottomOf="@+id/updateMqttButton" />
 
         <EditText
             android:id="@+id/portInput"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:hint="Enter Port"
             android:inputType="number"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            android:hint="Enter Port"
-            app:layout_constraintTop_toBottomOf="@id/ipAddressInput"
-            />
+            app:layout_constraintTop_toBottomOf="@id/ipAddressInput" />
 
         <EditText
             android:id="@+id/usernameInput"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:hint="Enter Username"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            android:hint="Enter Username"
-            app:layout_constraintTop_toBottomOf="@id/portInput"
-            />
+            app:layout_constraintTop_toBottomOf="@id/portInput" />
 
         <EditText
             android:id="@+id/passwordInput"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:hint="Enter Password"
+            app:layout_constraintBottom_toTopOf="@id/overwriteBpmSwitch"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintBottom_toTopOf="@id/overwriteBpmSwitch"
-            android:hint="Enter Password"
-            app:layout_constraintTop_toBottomOf="@id/usernameInput"
-            />
+            app:layout_constraintTop_toBottomOf="@id/usernameInput" />
 
         <Switch
             android:id="@+id/overwriteBpmSwitch"
@@ -136,17 +146,18 @@
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintTop_toBottomOf="@id/passwordInput"
             tools:ignore="UseSwitchCompatOrMaterialXml" />
+
         <EditText
             android:id="@+id/BPMInput"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:hint="Enter overwrite BPM"
             android:inputType="number"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toRightOf="parent"
-            android:hint="Enter overwrite BPM"
-            app:layout_constraintTop_toBottomOf="@id/overwriteBpmSwitch"
-            app:layout_constraintBottom_toBottomOf="parent"
-            />
+            app:layout_constraintTop_toBottomOf="@id/overwriteBpmSwitch" />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </ScrollView>

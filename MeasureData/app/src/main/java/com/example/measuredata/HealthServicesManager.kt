@@ -16,6 +16,8 @@ import androidx.health.services.client.data.DataTypeAvailability
 import androidx.health.services.client.data.DeltaDataType
 import androidx.health.services.client.data.SampleDataPoint
 import androidx.health.services.client.unregisterMeasureCallback
+// Remove this import to prevent conflicts
+// import androidx.health.services.client.unregisterMeasureCallback
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
@@ -79,6 +81,7 @@ class HealthServicesManager @Inject constructor(
         }
 
         Log.d(TAG, "Registering for heart rate data")
+        // Register the measure callback
         measureClient.registerMeasureCallback(DataType.HEART_RATE_BPM, callback)
 
         // Register the heart beat sensor listener
@@ -102,7 +105,10 @@ class HealthServicesManager @Inject constructor(
 
         awaitClose {
             Log.d(TAG, "Unregistering for heart rate data")
-            measureClient.unregisterMeasureCallback(DataType.HEART_RATE_BPM, callback)
+            // Wrap the suspending function call inside runBlocking
+            runBlocking {
+                measureClient.unregisterMeasureCallback(DataType.HEART_RATE_BPM, callback)
+            }
             // Unregister the sensor listener
             sensorManager.unregisterListener(this@HealthServicesManager)
             // Close the sensorChannel
