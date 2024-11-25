@@ -121,7 +121,8 @@ class HealthServicesManager @Inject constructor(
     // Implement SensorEventListener methods
     override fun onSensorChanged(event: SensorEvent) {
         if (event.sensor.type == Sensor.TYPE_HEART_BEAT) {
-            val currentTimestamp = System.currentTimeMillis()
+            //using the event timestamp to try to ensure the right IBI value is being sent
+            val currentTimestamp = event.timestamp / 1_000_000  // Convert nanoseconds to milliseconds
             if (lastBeatTimestamp != 0L) {
                 val ibi = currentTimestamp - lastBeatTimestamp
                 Log.d(TAG, "IBI: $ibi ms")
@@ -135,6 +136,7 @@ class HealthServicesManager @Inject constructor(
             Log.d(TAG, "Heart Beat detected at $currentTimestamp")
         }
     }
+
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         // Handle accuracy changes if necessary

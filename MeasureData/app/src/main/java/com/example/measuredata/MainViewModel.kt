@@ -20,7 +20,6 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val healthServicesManager: HealthServicesManager,
     private val sharedPreferences: SharedPreferences
-
 ) : ViewModel() {
 
     companion object {
@@ -46,6 +45,9 @@ class MainViewModel @Inject constructor(
     private val _ibiValue = MutableStateFlow<Long?>(null)
     val ibiValue: StateFlow<Long?> = _ibiValue
 
+    // Variables to store latest BPM and IBI values
+    private var latestBpm: Double? = null
+    private var latestIbi: Long? = null
 
     init {
         // Setup MQTT with stored preferences initially
@@ -80,52 +82,35 @@ class MainViewModel @Inject constructor(
         _uiState.value = UiState.ConnectingToMQTT
 
         viewModelScope.launch(Dispatchers.IO) {
-            var retryCount = 0
-            val maxRetries = 1
-            while (retryCount < maxRetries) {
-                try {
-                    Log.d(TAG, "Attempting to connect to MQTT broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
-                    mqttClient = MqttClient("${mqttDetails.serverUri}:${mqttDetails.port}", MqttClient.generateClientId(), MemoryPersistence())
-                    val connOpts = MqttConnectOptions().apply {
-                        isCleanSession = true
-                        mqttDetails.username?.let {
-                            Log.d(TAG, "Using MQTT username: $it")
-                            userName = it
-                        }
-                        mqttDetails.password?.let {
-                            Log.d(TAG, "Using MQTT password: ****")
-                            setPassword(it.toCharArray())
-                        }
+            try {
+                Log.d(TAG, "Attempting to connect to MQTT broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
+                mqttClient = MqttClient("${mqttDetails.serverUri}:${mqttDetails.port}", MqttClient.generateClientId(), MemoryPersistence())
+                val connOpts = MqttConnectOptions().apply {
+                    isCleanSession = true
+                    mqttDetails.username?.let {
+                        Log.d(TAG, "Using MQTT username: $it")
+                        userName = it
                     }
-
-                    mqttClient.connect(connOpts)
-
-                    // Connection successful, update UI state
-                    Log.d(TAG, "Connected to broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
-                    withContext(Dispatchers.Main) {
-                        _uiState.value = UiState.ConnectedToMQTT
-                        onlineMode = true
+                    mqttDetails.password?.let {
+                        Log.d(TAG, "Using MQTT password: ****")
+                        setPassword(it.toCharArray())
                     }
-                    break // Exit loop after success
+                }
 
-                } catch (e: MqttException) {
-                    retryCount++
-                    Log.e(TAG, "Failed to connect to broker (attempt $retryCount): ${e.message}")
+                mqttClient.connect(connOpts)
 
-                    if (retryCount < maxRetries) {
-                        // Update UI to reflect that we're retrying
-                        withContext(Dispatchers.Main) {
-                            _uiState.value = UiState.ConnectingToMQTT // Still trying
-                            Log.d(TAG, "Retrying MQTT connection... (attempt $retryCount)")
-                        }
-                    } else {
-                        // Max retries reached, update UI to reflect failure
-                        Log.e(TAG, "Max retries reached. Unable to connect to MQTT broker.")
-                        withContext(Dispatchers.Main) {
-                            _uiState.value = UiState.FailedToConnectMQTT
-                            onlineMode = false
-                        }
-                    }
+                // Connection successful, update UI state
+                Log.d(TAG, "Connected to broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.ConnectedToMQTT
+                    onlineMode = true
+                }
+
+            } catch (e: MqttException) {
+                Log.e(TAG, "Failed to connect to broker: ${e.message}")
+                withContext(Dispatchers.Main) {
+                    _uiState.value = UiState.FailedToConnectMQTT
+                    onlineMode = false
                 }
             }
         }
@@ -178,18 +163,20 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // Publish heart rate data to MQTT
-    private fun publishHeartRateData(bpm: Double) {
-        val message = MqttMessage("Heart Rate: $bpm".toByteArray())
+    // Function to publish combined heart rate and IBI data
+    private fun publishHeartData(bpm: Double, ibi: Long) {
+        val heartData = HeartData(bpm, ibi)
+        val messagePayload = "HeartData: bpm=${heartData.bpm}, ibi=${heartData.ibi}"
+        val message = MqttMessage(messagePayload.toByteArray())
         try {
             if (::mqttClient.isInitialized && mqttClient.isConnected) {
-                mqttClient.publish("watch/heart_rate", message)  // Updated topic to reflect heart rate
-                Log.d(TAG, "Published message: Heart Rate: $bpm")
+                mqttClient.publish("watch/heart_data", message)
+                Log.d(TAG, "Published combined heart data: $messagePayload")
             } else {
-                Log.e(TAG, "MQTT client is not connected, failed to publish message")
+                Log.e(TAG, "MQTT client is not connected, failed to publish heart data")
             }
         } catch (e: MqttException) {
-            Log.e(TAG, "Failed to publish message: ${e.message}")
+            Log.e(TAG, "Failed to publish heart data: ${e.message}")
         }
     }
 
@@ -235,25 +222,38 @@ class MainViewModel @Inject constructor(
                             }
 
                             _heartRateBpm.value = bpm
-                            if (onlineMode) {
-                                publishHeartRateData(bpm)  // Publishing heart rate data
-                            }
+                            latestBpm = bpm
+
+                            // Try to publish combined data if both bpm and ibi are available
+                            attemptToPublishCombinedData()
                         } else {
                             Log.d(TAG, "Received empty heart rate data.")
                         }
                     }
                     is MeasureMessage.MeasureIBI -> {
-                        // Handle IBI data here
                         val ibi = measureMessage.ibi
                         Log.d(TAG, "Received IBI: $ibi ms")
-                        // Process IBI data as needed
                         _ibiValue.value = ibi
+                        latestIbi = ibi
+
+                        // Try to publish combined data if both bpm and ibi are available
+                        attemptToPublishCombinedData()
                     }
                 }
             }
         }
     }
 
+    private fun attemptToPublishCombinedData() {
+        if (latestBpm != null && latestIbi != null) {
+            if (onlineMode) {
+                publishHeartData(latestBpm!!, latestIbi!!)
+                // Reset the latest values after publishing
+                latestBpm = null
+                latestIbi = null
+            }
+        }
+    }
 
     // Functions to update overwrite BPM values
     fun setOverwriteBpmEnabled(enabled: Boolean) {
@@ -264,6 +264,9 @@ class MainViewModel @Inject constructor(
         overwriteBpmValue.value = value
     }
 }
+
+// Helper data class for combined heart data
+data class HeartData(val bpm: Double, val ibi: Long)
 
 // Helper data class for MQTT details
 data class MqttDetails(
