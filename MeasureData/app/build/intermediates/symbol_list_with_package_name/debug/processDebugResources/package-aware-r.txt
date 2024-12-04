@@ -3494,6 +3494,7 @@ id home
 id homeAsUp
 id honorRequest
 id horizontal_only
+id ibiTextView
 id icon
 id icon_group
 id icon_only
@@ -3508,7 +3509,6 @@ id info
 id inner
 id invisible
 id inward
-id ipAddressInput
 id italic
 id item_touch_helper_previous_elevation
 id jumpToEnd
@@ -3631,14 +3631,12 @@ id parent
 id parentPanel
 id parentRelative
 id parent_matrix
-id passwordInput
 id password_toggle
 id path
 id pathRelative
 id peekHeight
 id percent
 id pin
-id portInput
 id position
 id postLayout
 id pressed
@@ -3776,9 +3774,7 @@ id unchecked
 id uniform
 id unlabeled
 id up
-id updateMqttButton
 id useLogo
-id usernameInput
 id vertical_only
 id view_offset_helper
 id view_transition

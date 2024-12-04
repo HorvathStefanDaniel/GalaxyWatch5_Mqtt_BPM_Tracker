@@ -56,6 +56,7 @@ class MainActivity : AppCompatActivity() {
         // Check and request permission in onStart
         checkAndRequestPermission()
 
+        // Observe IBI Value
         lifecycleScope.launch {
             viewModel.ibiValue.collect { ibi ->
                 ibi?.let {
@@ -65,32 +66,32 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-
-        // Observe heart rate and UI state
+        // Observe Heart Rate BPM
         lifecycleScope.launch {
             viewModel.heartRateBpm.collect { bpm ->
                 binding.heartRateText.text = "Heart Rate: $bpm bpm"
             }
         }
 
+        // Observe UI State
         lifecycleScope.launch {
             viewModel.uiState.collect { state ->
                 when (state) {
                     is UiState.Startup -> binding.statusText.text = "Starting up..."
                     is UiState.HeartRateAvailable -> binding.statusText.text = "Heart rate sensor available."
                     is UiState.HeartRateNotAvailable -> binding.statusText.text = "Heart rate sensor not available."
-                    UiState.ConnectedToMQTT -> {
+                    is UiState.ConnectingToMQTT -> {
+                        binding.statusText.text = "Connecting to MQTT..."
+                        Log.d("MainActivity", "Attempting to connect to MQTT")
+                        // Optionally start an activity or show a progress indicator
+                    }
+                    is UiState.ConnectedToMQTT -> {
                         binding.statusText.text = "Connected to MQTT"
                         Log.d("MainActivity", "MQTT connection established")
                         // Reflect the online state in the UI
                         binding.toggleModeButton.isChecked = true
                     }
-                    UiState.ConnectingToMQTT -> {
-                        binding.statusText.text = "Connecting to MQTT..."
-                        Log.d("MainActivity", "Attempting to connect to MQTT")
-                        // Optionally start an activity or show a progress indicator
-                    }
-                    UiState.FailedToConnectMQTT -> {
+                    is UiState.FailedToConnectMQTT -> {
                         binding.statusText.text = "Failed to connect to MQTT"
                         Log.e("MainActivity", "MQTT connection failed")
                         // Reflect the offline state in the UI
@@ -100,10 +101,14 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+
+
+        // Start Measuring Heart Rate Button
         binding.startMeasureButton.setOnClickListener {
             startHeartRateMeasurement()
         }
 
+        // Toggle Online/Offline Mode Button
         binding.toggleModeButton.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 // Online mode (start MQTT)
@@ -114,51 +119,6 @@ class MainActivity : AppCompatActivity() {
             }
             Log.d("MainActivity", "Online mode toggled: $isChecked")
         }
-
-        binding.updateMqttButton.setOnClickListener {
-            val serverUri = binding.ipAddressInput.text.toString()
-            val port = binding.portInput.text.toString().toIntOrNull() ?: 1883 // Default to port 1883 if not specified
-            val username = binding.usernameInput.text.toString().ifEmpty { null }
-            val password = binding.passwordInput.text.toString().ifEmpty { null }
-
-            viewModel.updateMqttDetails(serverUri, username, password, port)
-        }
-
-        // Set up BPM Overwrite Switch
-        binding.overwriteBpmSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setOverwriteBpmEnabled(isChecked)
-            Log.d("MainActivity", "Overwrite BPM enabled: $isChecked")
-        }
-
-        //bpm overwrite input disabled if switch is off
-        binding.overwriteBpmSwitch.setOnCheckedChangeListener { _, isChecked ->
-            viewModel.setOverwriteBpmEnabled(isChecked)
-            binding.BPMInput.isEnabled = isChecked
-            Log.d("MainActivity", "Overwrite BPM enabled: $isChecked")
-        }
-
-
-        // Listen for changes in the BPM input field
-        binding.BPMInput.addTextChangedListener(object : TextWatcher {
-            override fun afterTextChanged(s: Editable?) {
-                val bpmValue = s.toString().toDoubleOrNull()
-                if (bpmValue != null) {
-                    viewModel.setOverwriteBpmValue(bpmValue)
-                    Log.d("MainActivity", "Overwrite BPM value set to: $bpmValue")
-                } else {
-                    viewModel.setOverwriteBpmValue(0.0)
-                    Log.d("MainActivity", "Invalid BPM input. Set to 0.0")
-                }
-            }
-
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
-                // No action needed
-            }
-
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                // No action needed
-            }
-        })
     }
 
     // Function to check and request the BODY_SENSORS permission
@@ -168,7 +128,7 @@ class MainActivity : AppCompatActivity() {
         when (ContextCompat.checkSelfPermission(this, permission)) {
             PermissionChecker.PERMISSION_GRANTED -> {
                 Log.d("MainActivity", "BODY_SENSORS permission already granted")
-                startHeartRateMeasurement()
+                //startHeartRateMeasurement()
             }
             else -> {
                 Log.d("MainActivity", "Requesting BODY_SENSORS permission")

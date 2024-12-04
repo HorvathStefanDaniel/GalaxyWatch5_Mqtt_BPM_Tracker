@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -37,6 +38,8 @@ class MainViewModel @Inject constructor(
 
     private lateinit var mqttClient: MqttClient
     private var onlineMode = false
+    private var isMeasuring = false // Flag to track measurement state
+    private var measurementJob: Job? = null // Track the measurement coroutine job
 
     // Overwrite BPM functionality
     val overwriteBpmEnabled = MutableStateFlow(false)
@@ -47,7 +50,11 @@ class MainViewModel @Inject constructor(
 
     // Variables to store latest BPM and IBI values
     private var latestBpm: Double? = null
-    private var latestIbi: Long? = null
+    private var latestIbi: Long? = null  // Initialize as null
+
+    // Expose MQTT Details for UI
+    private val _mqttDetails = MutableStateFlow<MqttDetails?>(null)
+    val mqttDetails: StateFlow<MqttDetails?> = _mqttDetails
 
     init {
         // Setup MQTT with stored preferences initially
@@ -64,15 +71,21 @@ class MainViewModel @Inject constructor(
     }
 
     private fun getStoredMqttDetails(): MqttDetails {
-        val serverUri = sharedPreferences.getString("serverUri", "tcp://127.0.0.1") ?: "tcp://127.0.0.1"
-        val port = sharedPreferences.getInt("port", 1883)
-        val username = sharedPreferences.getString("username", null)
-        val password = sharedPreferences.getString("password", null)
+        // Use consistent MQTT broker IP address and port
+        val serverUri = "192.168.18.3" // "192.168.1.99" // Replace with your MQTT broker's IP address
+        val port = 1883
+        val username = "client"
+        val password = "FFA400"
 
         // Log the retrieved MQTT details
-        Log.d(TAG, "MQTT Details - Server URI: $serverUri, Port: $port, Username: $username, Password: ${if (password != null) "****" else "null"}")
+        Log.d(
+            TAG,
+            "MQTT Details - Server URI: $serverUri, Port: $port, Username: $username, Password: ****"
+        )
 
-        return MqttDetails(serverUri, port, username, password)
+        val details = MqttDetails(serverUri, port, username, password)
+        _mqttDetails.value = details // Emit the details
+        return details
     }
 
     fun setupMqtt() {
@@ -83,8 +96,10 @@ class MainViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Attempting to connect to MQTT broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
-                mqttClient = MqttClient("${mqttDetails.serverUri}:${mqttDetails.port}", MqttClient.generateClientId(), MemoryPersistence())
+                // Use the serverUri and port from mqttDetails
+                val fullBrokerUri = "tcp://${mqttDetails.serverUri}:${mqttDetails.port}"
+                Log.d(TAG, "Attempting to connect to MQTT broker at $fullBrokerUri")
+                mqttClient = MqttClient(fullBrokerUri, MqttClient.generateClientId(), MemoryPersistence())
                 val connOpts = MqttConnectOptions().apply {
                     isCleanSession = true
                     mqttDetails.username?.let {
@@ -95,12 +110,13 @@ class MainViewModel @Inject constructor(
                         Log.d(TAG, "Using MQTT password: ****")
                         setPassword(it.toCharArray())
                     }
+                    connectionTimeout = 10 // Set the timeout to 10 seconds
                 }
-
+                Log.d(TAG, "Attempting to connect ...")
                 mqttClient.connect(connOpts)
 
                 // Connection successful, update UI state
-                Log.d(TAG, "Connected to broker at ${mqttDetails.serverUri}:${mqttDetails.port}")
+                Log.d(TAG, "Connected to broker at $fullBrokerUri")
                 withContext(Dispatchers.Main) {
                     _uiState.value = UiState.ConnectedToMQTT
                     onlineMode = true
@@ -112,53 +128,6 @@ class MainViewModel @Inject constructor(
                     _uiState.value = UiState.FailedToConnectMQTT
                     onlineMode = false
                 }
-            }
-        }
-    }
-
-    // Update MQTT details from the UI and save them in SharedPreferences
-    fun updateMqttDetails(serverUri: String, username: String?, password: String?, port: Int) {
-        viewModelScope.launch {
-            try {
-                Log.d(TAG, "Updating MQTT details - Server URI: $serverUri, Port: $port, Username: $username, Password: ${if (password != null) "****" else "null"}")
-
-                if (::mqttClient.isInitialized && mqttClient.isConnected) {
-                    mqttClient.disconnect()
-                }
-
-                mqttClient = MqttClient("tcp://$serverUri:$port", MqttClient.generateClientId(), MemoryPersistence())
-                val connOpts = MqttConnectOptions().apply {
-                    isCleanSession = true
-                    // Set username and password if provided
-                    username?.let {
-                        Log.d(TAG, "Using MQTT username: $it")
-                        userName = it
-                    }
-                    password?.let {
-                        Log.d(TAG, "Using MQTT password: ****")  // Don't log the actual password
-                        setPassword(it.toCharArray())
-                    }
-                }
-
-                mqttClient.connect(connOpts)
-                Log.d(TAG, "MQTT details updated and connected to broker at $serverUri:$port")
-
-                // Save the new settings to SharedPreferences
-                sharedPreferences.edit()
-                    .putString("serverUri", serverUri)
-                    .putInt("port", port)
-                    .putString("username", username)
-                    .putString("password", password)
-                    .apply()
-
-                // Update UI state
-                _uiState.value = UiState.ConnectedToMQTT
-                onlineMode = true
-
-            } catch (e: MqttException) {
-                Log.e(TAG, "Failed to update MQTT details: ${e.message}")
-                _uiState.value = UiState.FailedToConnectMQTT
-                onlineMode = false
             }
         }
     }
@@ -202,7 +171,15 @@ class MainViewModel @Inject constructor(
 
     @ExperimentalCoroutinesApi
     fun measureHeartRate() {
-        viewModelScope.launch {
+        if (isMeasuring) {
+            Log.d(TAG, "Stopping measurement.")
+            measurementJob?.cancel()
+            isMeasuring = false
+            measurementJob = null
+            return
+        }
+        isMeasuring = true
+        measurementJob = viewModelScope.launch {
             Log.d(TAG, "Starting to measure heart rate.")
             healthServicesManager.heartRateMeasureFlow().collect { measureMessage ->
                 when (measureMessage) {
@@ -245,6 +222,7 @@ class MainViewModel @Inject constructor(
     }
 
     private fun attemptToPublishCombinedData() {
+        // Publish only when both BPM and IBI are available
         if (latestBpm != null && latestIbi != null) {
             if (onlineMode) {
                 publishHeartData(latestBpm!!, latestIbi!!)
@@ -262,6 +240,19 @@ class MainViewModel @Inject constructor(
 
     fun setOverwriteBpmValue(value: Double) {
         overwriteBpmValue.value = value
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (::mqttClient.isInitialized && mqttClient.isConnected) {
+            try {
+                mqttClient.disconnect()
+                mqttClient.close()
+                Log.d(TAG, "MQTT client disconnected and closed.")
+            } catch (e: MqttException) {
+                Log.e(TAG, "Error disconnecting MQTT client: ${e.message}")
+            }
+        }
     }
 }
 

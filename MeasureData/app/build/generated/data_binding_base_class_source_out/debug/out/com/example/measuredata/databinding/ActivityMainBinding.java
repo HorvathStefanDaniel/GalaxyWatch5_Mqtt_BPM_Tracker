@@ -30,16 +30,10 @@ public final class ActivityMainBinding implements ViewBinding {
   public final TextView heartRateText;
 
   @NonNull
-  public final EditText ipAddressInput;
+  public final TextView ibiTextView;
 
   @NonNull
   public final Switch overwriteBpmSwitch;
-
-  @NonNull
-  public final EditText passwordInput;
-
-  @NonNull
-  public final EditText portInput;
 
   @NonNull
   public final Button startMeasureButton;
@@ -50,30 +44,18 @@ public final class ActivityMainBinding implements ViewBinding {
   @NonNull
   public final ToggleButton toggleModeButton;
 
-  @NonNull
-  public final Button updateMqttButton;
-
-  @NonNull
-  public final EditText usernameInput;
-
   private ActivityMainBinding(@NonNull ScrollView rootView, @NonNull EditText BPMInput,
-      @NonNull TextView heartRateText, @NonNull EditText ipAddressInput,
-      @NonNull Switch overwriteBpmSwitch, @NonNull EditText passwordInput,
-      @NonNull EditText portInput, @NonNull Button startMeasureButton, @NonNull TextView statusText,
-      @NonNull ToggleButton toggleModeButton, @NonNull Button updateMqttButton,
-      @NonNull EditText usernameInput) {
+      @NonNull TextView heartRateText, @NonNull TextView ibiTextView,
+      @NonNull Switch overwriteBpmSwitch, @NonNull Button startMeasureButton,
+      @NonNull TextView statusText, @NonNull ToggleButton toggleModeButton) {
     this.rootView = rootView;
     this.BPMInput = BPMInput;
     this.heartRateText = heartRateText;
-    this.ipAddressInput = ipAddressInput;
+    this.ibiTextView = ibiTextView;
     this.overwriteBpmSwitch = overwriteBpmSwitch;
-    this.passwordInput = passwordInput;
-    this.portInput = portInput;
     this.startMeasureButton = startMeasureButton;
     this.statusText = statusText;
     this.toggleModeButton = toggleModeButton;
-    this.updateMqttButton = updateMqttButton;
-    this.usernameInput = usernameInput;
   }
 
   @Override
@@ -115,27 +97,15 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.ipAddressInput;
-      EditText ipAddressInput = ViewBindings.findChildViewById(rootView, id);
-      if (ipAddressInput == null) {
+      id = R.id.ibiTextView;
+      TextView ibiTextView = ViewBindings.findChildViewById(rootView, id);
+      if (ibiTextView == null) {
         break missingId;
       }
 
       id = R.id.overwriteBpmSwitch;
       Switch overwriteBpmSwitch = ViewBindings.findChildViewById(rootView, id);
       if (overwriteBpmSwitch == null) {
-        break missingId;
-      }
-
-      id = R.id.passwordInput;
-      EditText passwordInput = ViewBindings.findChildViewById(rootView, id);
-      if (passwordInput == null) {
-        break missingId;
-      }
-
-      id = R.id.portInput;
-      EditText portInput = ViewBindings.findChildViewById(rootView, id);
-      if (portInput == null) {
         break missingId;
       }
 
@@ -157,21 +127,8 @@ public final class ActivityMainBinding implements ViewBinding {
         break missingId;
       }
 
-      id = R.id.updateMqttButton;
-      Button updateMqttButton = ViewBindings.findChildViewById(rootView, id);
-      if (updateMqttButton == null) {
-        break missingId;
-      }
-
-      id = R.id.usernameInput;
-      EditText usernameInput = ViewBindings.findChildViewById(rootView, id);
-      if (usernameInput == null) {
-        break missingId;
-      }
-
-      return new ActivityMainBinding((ScrollView) rootView, BPMInput, heartRateText, ipAddressInput,
-          overwriteBpmSwitch, passwordInput, portInput, startMeasureButton, statusText,
-          toggleModeButton, updateMqttButton, usernameInput);
+      return new ActivityMainBinding((ScrollView) rootView, BPMInput, heartRateText, ibiTextView,
+          overwriteBpmSwitch, startMeasureButton, statusText, toggleModeButton);
     }
     String missingId = rootView.getResources().getResourceName(id);
     throw new NullPointerException("Missing required view with ID: ".concat(missingId));
