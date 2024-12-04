@@ -24,16 +24,12 @@ class HealthServicesManager @Inject constructor(
         private const val TAG = "HealthServicesManager"
     }
 
-    // Variable to store the timestamp of the last heart rate data point
-    private var lastHeartRateTimestamp: Long? = null
-
     suspend fun hasHeartRateCapability(): Boolean {
         val capabilities = measureClient.getCapabilitiesAsync().await()
         Log.d(TAG, "Supported data types: ${capabilities.supportedDataTypesMeasure}")
 
         return (DataType.HEART_RATE_BPM in capabilities.supportedDataTypesMeasure)
     }
-
     @ExperimentalCoroutinesApi
     fun heartRateMeasureFlow() = callbackFlow {
         val callback = object : MeasureCallback {
@@ -58,17 +54,18 @@ class HealthServicesManager @Inject constructor(
 
                     Log.d(TAG, "Heart rate data received: $bpm bpm at $timestamp ms")
 
-                    // Calculate IBI if last timestamp is available
-                    if (lastHeartRateTimestamp != null) {
-                        val ibi = timestamp - lastHeartRateTimestamp!!
-                        Log.d(TAG, "Calculated IBI: $ibi ms")
-
-                        // Send IBI data
-                        trySend(MeasureMessage.MeasureIBI(ibi)).isSuccess
+                    // Estimate IBI based on BPM
+                    var ibi = 0.toLong()
+                    ibi = if(bpm != 0.toDouble()){
+                        (60000.0 / bpm).toLong()
+                    }else{
+                        0
                     }
 
-                    // Update last timestamp
-                    lastHeartRateTimestamp = timestamp
+                    Log.d(TAG, "Estimated IBI: $ibi ms based on BPM")
+
+                    // Send IBI data
+                    trySend(MeasureMessage.MeasureIBI(ibi)).isSuccess
 
                     // Send heart rate data
                     trySend(MeasureMessage.MeasureData(listOf(latestDataPoint))).isSuccess
@@ -84,7 +81,7 @@ class HealthServicesManager @Inject constructor(
 
         awaitClose {
             Log.d(TAG, "Unregistering for heart rate data")
-            // Wrap the suspending function call inside runBlocking
+            // Unregister the measure callback
             runBlocking {
                 measureClient.unregisterMeasureCallback(DataType.HEART_RATE_BPM, callback)
             }
@@ -92,8 +89,9 @@ class HealthServicesManager @Inject constructor(
     }
 }
 
+// Define the MeasureMessage sealed class if not already defined
 sealed class MeasureMessage {
-    class MeasureAvailability(val availability: DataTypeAvailability) : MeasureMessage()
-    class MeasureData(val data: List<SampleDataPoint<Double>>) : MeasureMessage()
-    class MeasureIBI(val ibi: Long) : MeasureMessage()
+    data class MeasureAvailability(val availability: DataTypeAvailability) : MeasureMessage()
+    data class MeasureData(val data: List<SampleDataPoint<Double>>) : MeasureMessage()
+    data class MeasureIBI(val ibi: Long) : MeasureMessage()
 }
