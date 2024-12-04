@@ -72,7 +72,7 @@ class MainViewModel @Inject constructor(
 
     private fun getStoredMqttDetails(): MqttDetails {
         // Use consistent MQTT broker IP address and port
-        val serverUri = "192.168.18.3" // "192.168.1.99" // Replace with your MQTT broker's IP address
+        val serverUri = "192.168.1.99" // Replace with your MQTT broker's IP address
         val port = 1883
         val username = "client"
         val password = "FFA400"
