@@ -72,7 +72,7 @@ class MainViewModel @Inject constructor(
 
     private fun getStoredMqttDetails(): MqttDetails {
         // Use consistent MQTT broker IP address and port
-        val serverUri = "192.168.1.112" //"192.168.1.99" // Static IP MQTT Broker
+        val serverUri = "192.168.18.3"// "192.168.1.99" // Replace with your MQTT broker's IP address
         val port = 1883
         val username = "client"
         val password = "FFA400"
@@ -99,7 +99,7 @@ class MainViewModel @Inject constructor(
                 // Use the serverUri and port from mqttDetails
                 val fullBrokerUri = "tcp://${mqttDetails.serverUri}:${mqttDetails.port}"
                 Log.d(TAG, "Attempting to connect to MQTT broker at $fullBrokerUri")
-                mqttClient = MqttClient(fullBrokerUri, MqttClient.generateClientId(), MemoryPersistence())
+                mqttClient = MqttClient(fullBrokerUri, "SmartWatch", MemoryPersistence())
                 val connOpts = MqttConnectOptions().apply {
                     isCleanSession = true
                     mqttDetails.username?.let {
@@ -111,6 +111,7 @@ class MainViewModel @Inject constructor(
                         setPassword(it.toCharArray())
                     }
                     connectionTimeout = 10 // Set the timeout to 10 seconds
+                    setWill("clients/disconnect", "Client disconnected unexpectedly".toByteArray(), 2, true)
                 }
                 Log.d(TAG, "Attempting to connect ...")
                 mqttClient.connect(connOpts)
