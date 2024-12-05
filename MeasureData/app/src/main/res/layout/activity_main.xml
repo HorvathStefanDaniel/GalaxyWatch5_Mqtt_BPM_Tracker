@@ -61,6 +61,7 @@
 
         <!-- Button to update MQTT details. -->
         <ToggleButton
+            android:visibility="invisible"
             android:id="@+id/toggleModeButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

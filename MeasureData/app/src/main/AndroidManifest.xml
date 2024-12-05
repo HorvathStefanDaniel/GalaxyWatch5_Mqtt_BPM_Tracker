@@ -45,13 +45,7 @@
             </intent-filter>
         </activity>
 
-        <!-- MqttConnectionActivity declaration -->
-        <activity
-            android:name="com.example.measuredata.MqttConnectionActivity"
-            android:exported="true"
-            android:label="MQTT Connection"
-            android:taskAffinity="">
-        </activity>
+
 
     </application>
 </manifest>
