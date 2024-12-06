@@ -42,7 +42,7 @@ class MainViewModel @Inject constructor(
     private var latestIbi: Long? = null  // Initialize as null
 
     // UDP Socket details
-    private val serverIpAddress = "192.168.18.3"//"192.168.1.99" // Update with your server's IP address
+    private val serverIpAddress = "192.168.1.11"
     private val serverPort = 6009 // Port on which the server is listening for UDP packets
 
     init {
@@ -116,6 +116,13 @@ class MainViewModel @Inject constructor(
     private fun sendHeartData(bpm: Double, ibi: Long) {
         val heartData = HeartData(bpm, ibi)
         val messagePayload = "HeartData: bpm=${heartData.bpm}, ibi=${heartData.ibi}"
+
+        //Return on invalid bpm data
+        if(heartData.bpm <= 0.0){
+            Log.e(TAG, "Invalid BPM value: ${heartData.bpm}")
+            return
+        }
+
         viewModelScope.launch(Dispatchers.IO) {
             try {
                 val socket = DatagramSocket()

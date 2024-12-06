@@ -8,6 +8,7 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -21,6 +22,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var ibiTextView: TextView
     private lateinit var startMeasureButton: Button
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -33,14 +35,13 @@ class MainActivity : AppCompatActivity() {
         statusText = findViewById(R.id.statusText)
         heartRateText = findViewById(R.id.heartRateText)
         ibiTextView = findViewById(R.id.ibiTextView)
-        startMeasureButton = findViewById(R.id.startMeasureButton)
 
         // Observe IBI Value
         lifecycleScope.launch {
             viewModel.ibiValue.collect { ibi ->
                 ibi?.let {
                     // Update UI to display IBI
-                    ibiTextView.text = "IBI: $ibi ms"
+                    ibiTextView.text = "$ibi ms"
                 }
             }
         }
@@ -48,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         // Observe Heart Rate BPM
         lifecycleScope.launch {
             viewModel.heartRateBpm.collect { bpm ->
-                heartRateText.text = "Heart Rate: $bpm bpm"
+                heartRateText.text = "${bpm.toInt()}"
             }
         }
 
@@ -63,9 +64,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Start Measuring Heart Rate Button
-        startMeasureButton.setOnClickListener {
-            viewModel.measureHeartRate()
-        }
+        //just start measuring
+        viewModel.measureHeartRate()
     }
 }
