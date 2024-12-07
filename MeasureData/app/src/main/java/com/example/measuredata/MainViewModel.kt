@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collect
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -20,6 +21,7 @@ class MainViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "MainViewModel"
+        private const val RETRY_DELAY_MS = 2000L // Delay between retries in milliseconds
     }
 
     private val _uiState = MutableStateFlow<UiState>(UiState.Startup)
@@ -45,6 +47,9 @@ class MainViewModel @Inject constructor(
     private val serverIpAddress = "192.168.1.11"
     private val serverPort = 6009 // Port on which the server is listening for UDP packets
 
+    // Flag to prevent multiple re-initializations
+    private var isReinitializing = false
+
     init {
         // Automatically start measuring heart rate upon initialization
         viewModelScope.launch {
@@ -69,7 +74,7 @@ class MainViewModel @Inject constructor(
         isMeasuring = true
         measurementJob = viewModelScope.launch {
             Log.d(TAG, "Starting to measure heart rate.")
-            healthServicesManager.heartRateMeasureFlow().collect { measureMessage ->
+            healthServicesManager.measureFlow.collect { measureMessage ->
                 when (measureMessage) {
                     is MeasureMessage.MeasureAvailability -> {
                         Log.d(TAG, "Availability changed: ${measureMessage.availability}")
@@ -80,16 +85,17 @@ class MainViewModel @Inject constructor(
                             val bpm = measureMessage.data.last().value
                             Log.d(TAG, "Data update: $bpm")
 
-                            // Only update BPM if it's valid
                             if (bpm > 0) {
                                 _heartRateBpm.value = bpm
                                 latestBpm = bpm
+                                // Reset re-initialization flag on valid reading
+                                isReinitializing = false
 
                                 // Try to send combined data if both bpm and ibi are available
                                 attemptToSendCombinedData()
                             } else {
-                                Log.w(TAG, "Received invalid BPM: $bpm. Skipping.")
-                                // Optionally, handle invalid BPM (e.g., retry logic)
+                                Log.w(TAG, "Received invalid BPM: $bpm. Attempting to re-initialize sensor.")
+                                handleInvalidBpm()
                             }
                         } else {
                             Log.d(TAG, "Received empty heart rate data.")
@@ -109,6 +115,9 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Attempts to send combined heart rate and IBI data via UDP.
+     */
     private fun attemptToSendCombinedData() {
         // Send only when both BPM and IBI are available and BPM is valid
         if (latestBpm != null && latestIbi != null && latestBpm!! > 0) {
@@ -119,7 +128,48 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    // Function to send combined heart rate and IBI data via UDP
+    /**
+     * Handles scenarios where an invalid BPM reading (e.g., 0 bpm) is received.
+     * Initiates a re-initialization of the heart rate sensor.
+     */
+    private fun handleInvalidBpm() {
+        if (isReinitializing) {
+            Log.d(TAG, "Re-initialization already in progress.")
+            return
+        }
+
+        isReinitializing = true
+        Log.d(TAG, "Attempting to re-initialize sensor after invalid BPM.")
+
+        viewModelScope.launch {
+            delay(RETRY_DELAY_MS)
+            reinitializeHeartRateMeasurement()
+        }
+    }
+
+    /**
+     * Re-initializes the heart rate measurement by stopping and restarting the measurement job.
+     */
+    private suspend fun reinitializeHeartRateMeasurement() {
+        Log.d(TAG, "Re-initializing heart rate measurement.")
+        stopHeartRateMeasurement()
+        startHeartRateMeasurement()
+    }
+
+    /**
+     * Stops the current heart rate measurement coroutine job.
+     */
+    private fun stopHeartRateMeasurement() {
+        if (isMeasuring) {
+            measurementJob?.cancel()
+            isMeasuring = false
+            Log.d(TAG, "Stopped heart rate measurement.")
+        }
+    }
+
+    /**
+     * Function to send combined heart rate and IBI data via UDP.
+     */
     private fun sendHeartData(bpm: Double, ibi: Long) {
         val heartData = HeartData(bpm, ibi)
         val messagePayload = "HeartData: bpm=${heartData.bpm}, ibi=${heartData.ibi}"
@@ -144,6 +194,12 @@ class MainViewModel @Inject constructor(
                 // Optionally implement retry logic here if UDP transmission fails
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopHeartRateMeasurement()
+        healthServicesManager.unregister()
     }
 
     // Helper data class for combined heart data
