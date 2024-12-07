@@ -65,6 +65,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         //just start measuring
-        viewModel.measureHeartRate()
+        //viewModel.measureHeartRate()
     }
 }

@@ -11,7 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 class HealthServicesManager @Inject constructor(
@@ -30,8 +30,9 @@ class HealthServicesManager @Inject constructor(
 
         return (DataType.HEART_RATE_BPM in capabilities.supportedDataTypesMeasure)
     }
+
     @ExperimentalCoroutinesApi
-    fun heartRateMeasureFlow() = callbackFlow {
+    fun heartRateMeasureFlow() = callbackFlow<MeasureMessage> {
         val callback = object : MeasureCallback {
             override fun onAvailabilityChanged(
                 dataType: DeltaDataType<*, *>,
@@ -54,21 +55,20 @@ class HealthServicesManager @Inject constructor(
 
                     Log.d(TAG, "Heart rate data received: $bpm bpm at $timestamp ms")
 
-                    // Estimate IBI based on BPM
-                    var ibi = 0.toLong()
-                    ibi = if(bpm != 0.toDouble()){
-                        (60000.0 / bpm).toLong()
-                    }else{
-                        0
+                    if (bpm > 0) { // Only process valid BPM
+                        // Estimate IBI based on BPM
+                        val ibi = (60000.0 / bpm).toLong()
+
+                        Log.d(TAG, "Estimated IBI: $ibi ms based on BPM")
+
+                        // Send IBI data
+                        trySend(MeasureMessage.MeasureIBI(ibi)).isSuccess
+
+                        // Send heart rate data
+                        trySend(MeasureMessage.MeasureData(listOf(latestDataPoint))).isSuccess
+                    } else {
+                        Log.w(TAG, "Received invalid BPM value: $bpm. Ignoring.")
                     }
-
-                    Log.d(TAG, "Estimated IBI: $ibi ms based on BPM")
-
-                    // Send IBI data
-                    trySend(MeasureMessage.MeasureIBI(ibi)).isSuccess
-
-                    // Send heart rate data
-                    trySend(MeasureMessage.MeasureData(listOf(latestDataPoint))).isSuccess
                 } else {
                     Log.d(TAG, "No heart rate data received.")
                 }
@@ -81,9 +81,14 @@ class HealthServicesManager @Inject constructor(
 
         awaitClose {
             Log.d(TAG, "Unregistering for heart rate data")
-            // Unregister the measure callback
-            runBlocking {
-                measureClient.unregisterMeasureCallback(DataType.HEART_RATE_BPM, callback)
+            // Launch a new coroutine to call the suspend function
+            launch {
+                try {
+                    measureClient.unregisterMeasureCallback(DataType.HEART_RATE_BPM, callback)
+                    Log.d(TAG, "Successfully unregistered measure callback")
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error unregistering measure callback: ${e.message}")
+                }
             }
         }
     }

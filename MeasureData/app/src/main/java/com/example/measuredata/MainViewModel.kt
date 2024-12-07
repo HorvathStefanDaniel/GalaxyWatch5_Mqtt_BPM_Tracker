@@ -46,23 +46,24 @@ class MainViewModel @Inject constructor(
     private val serverPort = 6009 // Port on which the server is listening for UDP packets
 
     init {
-        // Check heart rate capability
+        // Automatically start measuring heart rate upon initialization
         viewModelScope.launch {
-            _uiState.value = if (healthServicesManager.hasHeartRateCapability()) {
-                UiState.HeartRateAvailable
+            if (healthServicesManager.hasHeartRateCapability()) {
+                Log.d(TAG, "Heart rate capability available. Starting measurement.")
+                _uiState.value = UiState.HeartRateAvailable
+                startHeartRateMeasurement()
             } else {
-                UiState.HeartRateNotAvailable
+                Log.e(TAG, "Heart rate capability not available.")
+                _uiState.value = UiState.HeartRateNotAvailable
+                // Optionally, implement a retry mechanism to check capability again after some time
             }
         }
     }
 
     @ExperimentalCoroutinesApi
-    fun measureHeartRate() {
+    private fun startHeartRateMeasurement() {
         if (isMeasuring) {
-            Log.d(TAG, "Stopping measurement.")
-            measurementJob?.cancel()
-            isMeasuring = false
-            measurementJob = null
+            Log.d(TAG, "Measurement already in progress.")
             return
         }
         isMeasuring = true
@@ -79,11 +80,17 @@ class MainViewModel @Inject constructor(
                             val bpm = measureMessage.data.last().value
                             Log.d(TAG, "Data update: $bpm")
 
-                            _heartRateBpm.value = bpm
-                            latestBpm = bpm
+                            // Only update BPM if it's valid
+                            if (bpm > 0) {
+                                _heartRateBpm.value = bpm
+                                latestBpm = bpm
 
-                            // Try to send combined data if both bpm and ibi are available
-                            attemptToSendCombinedData()
+                                // Try to send combined data if both bpm and ibi are available
+                                attemptToSendCombinedData()
+                            } else {
+                                Log.w(TAG, "Received invalid BPM: $bpm. Skipping.")
+                                // Optionally, handle invalid BPM (e.g., retry logic)
+                            }
                         } else {
                             Log.d(TAG, "Received empty heart rate data.")
                         }
@@ -103,8 +110,8 @@ class MainViewModel @Inject constructor(
     }
 
     private fun attemptToSendCombinedData() {
-        // Send only when both BPM and IBI are available
-        if (latestBpm != null && latestIbi != null) {
+        // Send only when both BPM and IBI are available and BPM is valid
+        if (latestBpm != null && latestIbi != null && latestBpm!! > 0) {
             sendHeartData(latestBpm!!, latestIbi!!)
             // Reset the latest values after sending
             latestBpm = null
@@ -117,24 +124,24 @@ class MainViewModel @Inject constructor(
         val heartData = HeartData(bpm, ibi)
         val messagePayload = "HeartData: bpm=${heartData.bpm}, ibi=${heartData.ibi}"
 
-        //Return on invalid bpm data
-        if(heartData.bpm <= 0.0){
+        // Return on invalid bpm data
+        if (heartData.bpm <= 0.0) {
             Log.e(TAG, "Invalid BPM value: ${heartData.bpm}")
             return
         }
 
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val socket = DatagramSocket()
-                Log.e(TAG, "Socket: $socket is connected ? ${socket.isConnected}")
-                val serverAddress = InetAddress.getByName(serverIpAddress)
-                val buffer = messagePayload.toByteArray()
-                val packet = DatagramPacket(buffer, buffer.size, serverAddress, serverPort)
-                socket.send(packet)
-                socket.close()
-                Log.d(TAG, "Sent heart data via UDP: $messagePayload to ${serverIpAddress}")
+                DatagramSocket().use { socket ->
+                    val serverAddress = InetAddress.getByName(serverIpAddress)
+                    val buffer = messagePayload.toByteArray()
+                    val packet = DatagramPacket(buffer, buffer.size, serverAddress, serverPort)
+                    socket.send(packet)
+                    Log.d(TAG, "Sent heart data via UDP: $messagePayload to $serverIpAddress")
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to send heart data via UDP: ${e.message}")
+                // Optionally implement retry logic here if UDP transmission fails
             }
         }
     }
